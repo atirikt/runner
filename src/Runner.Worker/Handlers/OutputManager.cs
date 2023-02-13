@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using GitHub.DistributedTask.WebApi;
 using GitHub.Runner.Common;
 using GitHub.Runner.Sdk;
 using GitHub.Runner.Worker.Container;
@@ -41,7 +42,7 @@ namespace GitHub.Runner.Worker.Handlers
             }
 
             // Determine the timeout
-            var timeoutStr = _executionContext.Global.Variables.Get(_timeoutKey);
+            var timeoutStr = _executionContext.Global.Variables.Get(_timeoutKey, SecretScope.Final);
             if (string.IsNullOrEmpty(timeoutStr) ||
                 !TimeSpan.TryParse(timeoutStr, CultureInfo.InvariantCulture, out _timeout) ||
                 _timeout <= TimeSpan.Zero)

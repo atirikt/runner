@@ -99,7 +99,7 @@ namespace GitHub.Runner.Common
             _jobServer.InitializeWebsocketClient(serviceEndPoint);
 
             // This code is usually wrapped by an instance of IExecutionContext which isn't available here.
-            jobRequest.Variables.TryGetValue("system.github.results_endpoint", out VariableValue resultsEndpointVariable);
+            jobRequest.Variables[SecretScope.Final].TryGetValue("system.github.results_endpoint", out VariableValue resultsEndpointVariable);
             var resultsReceiverEndpoint = resultsEndpointVariable?.Value;
 
             if (serviceEndPoint?.Authorization != null &&

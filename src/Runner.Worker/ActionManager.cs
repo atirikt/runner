@@ -17,6 +17,7 @@ using GitHub.Services.Common;
 using WebApi = GitHub.DistributedTask.WebApi;
 using Pipelines = GitHub.DistributedTask.Pipelines;
 using PipelineTemplateConstants = GitHub.DistributedTask.Pipelines.ObjectTemplating.PipelineTemplateConstants;
+using GitHub.DistributedTask.WebApi;
 
 namespace GitHub.Runner.Worker
 {
@@ -448,7 +449,7 @@ namespace GitHub.Runner.Worker
                             {
                                 // Load stored Ids for later load actions
                                 compositeAction.Steps[i].Id = _cachedEmbeddedStepIds[action.Id][i];
-                                if (string.IsNullOrEmpty(executionContext.Global.Variables.Get("DistributedTask.EnableCompositeActions")) && compositeAction.Steps[i].Reference.Type != Pipelines.ActionSourceType.Script)
+                                if (string.IsNullOrEmpty(executionContext.Global.Variables.Get("DistributedTask.EnableCompositeActions", SecretScope.Final)) && compositeAction.Steps[i].Reference.Type != Pipelines.ActionSourceType.Script)
                                 {
                                     throw new Exception("`uses:` keyword is not currently supported.");
                                 }
@@ -941,7 +942,7 @@ namespace GitHub.Runner.Worker
             if (string.IsNullOrEmpty(authToken))
             {
                 // TODO: Deprecate the PREVIEW_ACTION_TOKEN
-                authToken = executionContext.Global.Variables.Get("PREVIEW_ACTION_TOKEN");
+                authToken = executionContext.Global.Variables.Get("PREVIEW_ACTION_TOKEN", SecretScope.Final);
             }
 
             if (!string.IsNullOrEmpty(authToken))
@@ -1062,7 +1063,7 @@ namespace GitHub.Runner.Worker
 
                     foreach (var step in compositeAction.Steps)
                     {
-                        if (string.IsNullOrEmpty(executionContext.Global.Variables.Get("DistributedTask.EnableCompositeActions")) && step.Reference.Type != Pipelines.ActionSourceType.Script)
+                        if (string.IsNullOrEmpty(executionContext.Global.Variables.Get("DistributedTask.EnableCompositeActions", SecretScope.Final)) && step.Reference.Type != Pipelines.ActionSourceType.Script)
                         {
                             throw new Exception("`uses:` keyword is not currently supported.");
                         }

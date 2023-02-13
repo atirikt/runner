@@ -189,7 +189,7 @@ namespace GitHub.Runner.Worker
 
         internal static bool EnhancedAnnotationsEnabled(IExecutionContext context)
         {
-            return context.Global.Variables.GetBoolean("DistributedTask.EnhancedAnnotations") ?? false;
+            return context.Global.Variables.GetBoolean("DistributedTask.EnhancedAnnotations", SecretScope.Final) ?? false;
         }
     }
 
@@ -307,7 +307,7 @@ namespace GitHub.Runner.Worker
 
         public void ProcessCommand(IExecutionContext context, string line, ActionCommand command, ContainerInfo container)
         {
-            if (context.Global.Variables.GetBoolean("DistributedTask.DeprecateStepOutputCommands") ?? false)
+            if (context.Global.Variables.GetBoolean("DistributedTask.DeprecateStepOutputCommands", SecretScope.Final) ?? false)
             {
                 var issue = new Issue()
                 {
@@ -342,7 +342,7 @@ namespace GitHub.Runner.Worker
 
         public void ProcessCommand(IExecutionContext context, string line, ActionCommand command, ContainerInfo container)
         {
-            if (context.Global.Variables.GetBoolean("DistributedTask.DeprecateStepOutputCommands") ?? false)
+            if (context.Global.Variables.GetBoolean("DistributedTask.DeprecateStepOutputCommands", SecretScope.Final) ?? false)
             {
                 var issue = new Issue()
                 {

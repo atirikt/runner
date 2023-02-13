@@ -59,7 +59,7 @@ namespace GitHub.Runner.Worker.Handlers
 
                 // With node12 EoL in 04/2022, we want to be able to uniformly upgrade all JS actions to node16 from the server
                 if (string.Equals(nodeData.NodeVersion, "node12", StringComparison.InvariantCultureIgnoreCase) &&
-                    (executionContext.Global.Variables.GetBoolean("DistributedTask.ForceGithubJavascriptActionsToNode16") ?? false))
+                    (executionContext.Global.Variables.GetBoolean("DistributedTask.ForceGithubJavascriptActionsToNode16", SecretScope.Final) ?? false))
                 {
                     // The user can opt out of this behaviour by setting this variable to true, either setting 'env' in their workflow or as an environment variable on their machine
                     executionContext.Global.EnvironmentVariables.TryGetValue(Constants.Variables.Actions.AllowActionsUseUnsecureNodeVersion, out var workflowOptOut);

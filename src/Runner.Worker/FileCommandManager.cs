@@ -213,7 +213,7 @@ namespace GitHub.Runner.Worker
                 context.Root.QueueAttachFile(ChecksAttachmentType.StepSummary, attachmentName, scrubbedFilePath);
 
                 // Dual upload the same files to Results Service
-                context.Global.Variables.TryGetValue("system.github.results_endpoint", out string resultsReceiverEndpoint);
+                context.Global.Variables.TryGetValue("system.github.results_endpoint", SecretScope.Final, out string resultsReceiverEndpoint);
                 if (resultsReceiverEndpoint != null)
                 {
                     Trace.Info($"Queueing results file ({filePath}) for attachment upload ({attachmentName})");

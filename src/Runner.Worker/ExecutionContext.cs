@@ -701,11 +701,11 @@ namespace GitHub.Runner.Worker
 
             // Ser debug using vars context if debug variables are not already present.
             var variables = message.Variables;
-            SetDebugUsingVars(variables, message.ContextData);
+            SetDebugUsingVars(variables[SecretScope.Final], message.ContextData);
 
             Global.Variables = new Variables(HostContext, variables);
 
-            if (Global.Variables.GetBoolean("DistributedTask.ForceInternalNodeVersionOnRunnerTo12") ?? false)
+            if (Global.Variables.GetBoolean("DistributedTask.ForceInternalNodeVersionOnRunnerTo12", SecretScope.Final) ?? false)
             {
                 Environment.SetEnvironmentVariable(Constants.Variables.Agent.ForcedInternalNodeVersion, "node12");
             }
@@ -750,15 +750,17 @@ namespace GitHub.Runner.Worker
                 }
             }
 
-            ExpressionValues["secrets"] = Global.Variables.ToSecretsContext();
+            ExpressionValues["secrets"] = Global.Variables.ToSecretsContext(SecretScope.Final);
+            ExpressionValues["org_secrets"] = Global.Variables.ToSecretsContext(SecretScope.Org);
+            ExpressionValues["repo_secrets"] = Global.Variables.ToSecretsContext(SecretScope.Repo);
             ExpressionValues["runner"] = new RunnerContext();
             ExpressionValues["job"] = new JobContext();
 
             Trace.Info("Initialize GitHub context");
-            var githubAccessToken = new StringContextData(Global.Variables.Get("system.github.token"));
+            var githubAccessToken = new StringContextData(Global.Variables.Get("system.github.token", SecretScope.Final));
             var base64EncodedToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"x-access-token:{githubAccessToken}"));
             HostContext.SecretMasker.AddValue(base64EncodedToken);
-            var githubJob = Global.Variables.Get("system.github.job");
+            var githubJob = Global.Variables.Get("system.github.job", SecretScope.Final);
             var githubContext = new GitHubContext();
             githubContext["token"] = githubAccessToken;
             if (!string.IsNullOrEmpty(githubJob))

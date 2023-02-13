@@ -33,7 +33,7 @@ namespace GitHub.DistributedTask.Pipelines
             TemplateToken jobContainer,
             TemplateToken jobServiceContainers,
             IList<TemplateToken> environmentVariables,
-            IDictionary<String, VariableValue> variables,
+            IDictionary<SecretScope, IDictionary<String, VariableValue>> variables,
             IList<MaskHint> maskHints,
             JobResources jobResources,
             DictionaryContextData contextData,
@@ -57,7 +57,10 @@ namespace GitHub.DistributedTask.Pipelines
             this.Workspace = workspaceOptions;
             this.JobOutputs = jobOutputs;
             this.ActionsEnvironment = actionsEnvironment;
-            m_variables = new Dictionary<String, VariableValue>(variables, StringComparer.OrdinalIgnoreCase);
+            m_variables = new Dictionary<SecretScope, IDictionary<String, VariableValue>>();
+            foreach (var varScope in variables){
+                m_variables[varScope.Key] = new Dictionary<String, VariableValue>(varScope.Value, StringComparer.OrdinalIgnoreCase);
+            }
             m_maskHints = new List<MaskHint>(maskHints);
             m_steps = new List<JobStep>(steps);
 
@@ -240,13 +243,16 @@ namespace GitHub.DistributedTask.Pipelines
         /// <summary>
         /// Gets the collection of variables associated with the current context.
         /// </summary>
-        public IDictionary<String, VariableValue> Variables
+        public IDictionary<SecretScope, IDictionary<String, VariableValue>> Variables
         {
             get
             {
                 if (m_variables == null)
                 {
-                    m_variables = new Dictionary<String, VariableValue>(StringComparer.OrdinalIgnoreCase);
+                    m_variables = new Dictionary<SecretScope, IDictionary<string, VariableValue> >();
+                    m_variables[SecretScope.Final] = new Dictionary<String, VariableValue>(StringComparer.OrdinalIgnoreCase);
+                    m_variables[SecretScope.Org] = new Dictionary<String, VariableValue>(StringComparer.OrdinalIgnoreCase);
+                    m_variables[SecretScope.Repo] = new Dictionary<String, VariableValue>(StringComparer.OrdinalIgnoreCase);
                 }
                 return m_variables;
             }
@@ -434,7 +440,7 @@ namespace GitHub.DistributedTask.Pipelines
         private List<JobStep> m_steps;
 
         [DataMember(Name = "Variables", EmitDefaultValue = false)]
-        private IDictionary<String, VariableValue> m_variables;
+        private IDictionary< SecretScope, IDictionary<String, VariableValue>> m_variables;
 
         // todo: remove after feature-flag DistributedTask.EvaluateContainerOnRunner is enabled everywhere
         [DataMember(Name = "JobSidecarContainers", EmitDefaultValue = false)]

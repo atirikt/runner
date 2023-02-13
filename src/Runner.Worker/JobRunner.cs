@@ -238,7 +238,7 @@ namespace GitHub.Runner.Worker
         {
             jobContext.Debug($"Finishing: {message.JobDisplayName}");
             TaskResult result = jobContext.Complete(taskResult);
-            if (jobContext.Global.Variables.TryGetValue("Node12ActionsWarnings", out var node12Warnings))
+            if (jobContext.Global.Variables.TryGetValue("Node12ActionsWarnings", SecretScope.Final, out var node12Warnings))
             {
                 var actions = string.Join(", ", StringUtil.ConvertFromJson<HashSet<string>>(node12Warnings));
                 jobContext.Warning(string.Format(Constants.Runner.Node12DetectedAfterEndOfLife, actions));
@@ -330,7 +330,7 @@ namespace GitHub.Runner.Worker
                 }
             }
 
-            if (jobContext.Global.Variables.TryGetValue("Node12ActionsWarnings", out var node12Warnings))
+            if (jobContext.Global.Variables.TryGetValue("Node12ActionsWarnings", SecretScope.Final, out var node12Warnings))
             {
                 var actions = string.Join(", ", StringUtil.ConvertFromJson<HashSet<string>>(node12Warnings));
                 jobContext.Warning(string.Format(Constants.Runner.Node12DetectedAfterEndOfLife, actions));

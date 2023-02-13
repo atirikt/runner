@@ -223,7 +223,7 @@ namespace GitHub.Runner.Worker.Handlers
             {
                 string taskEnvPATH;
                 Environment.TryGetValue(Constants.PathVariable, out taskEnvPATH);
-                string originalPath = RuntimeVariables.Get(Constants.PathVariable) ?? // Prefer a job variable.
+                string originalPath = RuntimeVariables.Get(Constants.PathVariable, SecretScope.Final) ?? // Prefer a job variable.
                     taskEnvPATH ?? // Then a task-environment variable.
                     System.Environment.GetEnvironmentVariable(Constants.PathVariable) ?? // Then an environment variable.
                     string.Empty;

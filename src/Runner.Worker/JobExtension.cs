@@ -79,7 +79,7 @@ namespace GitHub.Runner.Worker
                         {
                             // print out HostName for self-hosted runner
                             context.Output($"Runner name: '{setting.AgentName}'");
-                            if (message.Variables.TryGetValue("system.runnerGroupName", out VariableValue runnerGroupName))
+                            if (message.Variables[SecretScope.Final].TryGetValue("system.runnerGroupName", out VariableValue runnerGroupName))
                             {
                                 context.Output($"Runner group name: '{runnerGroupName.Value}'");
                             }
@@ -126,7 +126,7 @@ namespace GitHub.Runner.Worker
 
                     try
                     {
-                        var tokenPermissions = jobContext.Global.Variables.Get("system.github.token.permissions") ?? "";
+                        var tokenPermissions = jobContext.Global.Variables.Get("system.github.token.permissions", SecretScope.Final) ?? "";
                         if (!string.IsNullOrEmpty(tokenPermissions))
                         {
                             context.Output($"##[group]GITHUB_TOKEN Permissions");
@@ -319,10 +319,10 @@ namespace GitHub.Runner.Worker
                         }
                     }
 
-                    if (message.Variables.TryGetValue("system.workflowFileFullPath", out VariableValue workflowFileFullPath))
+                    if (message.Variables[SecretScope.Final].TryGetValue("system.workflowFileFullPath", out VariableValue workflowFileFullPath))
                     {
                         var usesLogText = $"Uses: {workflowFileFullPath.Value}";
-                        var reference = GetWorkflowReference(message.Variables);
+                        var reference = GetWorkflowReference(message.Variables[SecretScope.Final]);
                         context.Output(usesLogText + reference);
 
                         if (message.ContextData.TryGetValue("inputs", out var pipelineContextData))
@@ -399,7 +399,7 @@ namespace GitHub.Runner.Worker
                     steps.AddRange(jobSteps);
 
                     // Prepare for orphan process cleanup
-                    _processCleanup = jobContext.Global.Variables.GetBoolean("process.clean") ?? true;
+                    _processCleanup = jobContext.Global.Variables.GetBoolean("process.clean", SecretScope.Final) ?? true;
                     if (_processCleanup)
                     {
                         // Set the RUNNER_TRACKING_ID env variable.
@@ -573,7 +573,7 @@ namespace GitHub.Runner.Worker
                         }
                     }
 
-                    if (context.Global.Variables.GetBoolean(Constants.Variables.Actions.RunnerDebug) ?? false)
+                    if (context.Global.Variables.GetBoolean(Constants.Variables.Actions.RunnerDebug, SecretScope.Final) ?? false)
                     {
                         Trace.Info("Support log upload starting.");
                         context.Output("Uploading runner diagnostic logs");

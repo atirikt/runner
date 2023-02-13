@@ -144,22 +144,24 @@ namespace GitHub.Runner.Worker
             ArgUtil.NotNull(message.Resources, nameof(message.Resources));
 
             // Add mask hints for secret variables
-            foreach (var variable in (message.Variables ?? new Dictionary<string, VariableValue>()))
-            {
-                // Need to ignore values on whitelist
-                if (variable.Value.IsSecret && !SecretVariableMaskWhitelist.Contains(variable.Key))
+            foreach (var varScope in message.Variables) {
+                foreach (var variable in (message.Variables[varScope.Key] ?? new Dictionary<string, VariableValue>()))
                 {
-                    var value = variable.Value.Value?.Trim() ?? string.Empty;
-
-                    // Add the entire value, even if it contains CR or LF. During expression tracing,
-                    // invidual trace info may contain line breaks.
-                    HostContext.SecretMasker.AddValue(value);
-
-                    // Also add each individual line. Typically individual lines are processed from STDOUT of child processes.
-                    var split = value.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    foreach (var item in split)
+                    // Need to ignore values on whitelist
+                    if (variable.Value.IsSecret && !SecretVariableMaskWhitelist.Contains(variable.Key))
                     {
-                        HostContext.SecretMasker.AddValue(item);
+                        var value = variable.Value.Value?.Trim() ?? string.Empty;
+
+                        // Add the entire value, even if it contains CR or LF. During expression tracing,
+                        // invidual trace info may contain line breaks.
+                        HostContext.SecretMasker.AddValue(value);
+
+                        // Also add each individual line. Typically individual lines are processed from STDOUT of child processes.
+                        var split = value.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        foreach (var item in split)
+                        {
+                            HostContext.SecretMasker.AddValue(item);
+                        }
                     }
                 }
             }
@@ -203,7 +205,7 @@ namespace GitHub.Runner.Worker
             VariableValue culture;
             ArgUtil.NotNull(message, nameof(message));
             ArgUtil.NotNull(message.Variables, nameof(message.Variables));
-            if (message.Variables.TryGetValue(Constants.Variables.System.Culture, out culture))
+            if (message.Variables[SecretScope.Final].TryGetValue(Constants.Variables.System.Culture, out culture))
             {
                 // Set the default thread culture.
                 HostContext.SetDefaultCulture(culture.Value);

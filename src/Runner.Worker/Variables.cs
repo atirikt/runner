@@ -11,10 +11,13 @@ using GitHub.Runner.Sdk;
 
 namespace GitHub.Runner.Worker
 {
+
+
     public sealed class Variables
     {
         private readonly IHostContext _hostContext;
-        private readonly ConcurrentDictionary<string, Variable> _variables = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<SecretScope, Dictionary<string, Variable>> _variables = new Dictionary<SecretScope, Dictionary<string, Variable>>{{SecretScope.Org, new Dictionary<string, Variable>(StringComparer.OrdinalIgnoreCase)},
+        {SecretScope.Repo, new Dictionary<string, Variable>(StringComparer.OrdinalIgnoreCase)}, {SecretScope.Final, new Dictionary<string, Variable>(StringComparer.OrdinalIgnoreCase)}};
         private readonly ISecretMasker _secretMasker;
         private readonly object _setLock = new();
         private readonly Tracing _trace;
@@ -23,11 +26,16 @@ namespace GitHub.Runner.Worker
         {
             get
             {
-                return _variables.Values;
+                //TBD scope
+                var output = new List<Variable>();
+                foreach (var varScope in _variables){
+                    output.AddRange(varScope.Value.Values);
+                }
+                return output;
             }
         }
 
-        public Variables(IHostContext hostContext, IDictionary<string, VariableValue> copy)
+        public Variables(IHostContext hostContext, IDictionary<SecretScope, IDictionary<string, VariableValue>> copy)
         {
             // Store/Validate args.
             _hostContext = hostContext;
@@ -37,32 +45,41 @@ namespace GitHub.Runner.Worker
 
             // Validate the dictionary, remove any variable with empty variable name.
             ArgUtil.NotNull(copy, nameof(copy));
-            if (copy.Keys.Any(k => string.IsNullOrWhiteSpace(k)))
-            {
-                _trace.Info($"Remove {copy.Keys.Count(k => string.IsNullOrWhiteSpace(k))} variables with empty variable name.");
-            }
-
-            // Initialize the variable dictionary.
-            List<Variable> variables = new();
-            foreach (var variable in copy)
-            {
-                if (!string.IsNullOrWhiteSpace(variable.Key))
+            foreach (var varScope in copy){
+                if (varScope.Value.Keys.Any(k => string.IsNullOrWhiteSpace(k)))
                 {
-                    variables.Add(new Variable(variable.Key, variable.Value.Value, variable.Value.IsSecret));
+                    _trace.Info($"Remove {varScope.Value.Keys.Count(k => string.IsNullOrWhiteSpace(k))} variables with empty variable name.");
                 }
             }
 
-            foreach (Variable variable in variables)
+            // Initialize the variable dictionary.
+            Dictionary<SecretScope, List<Variable>> variables = new();
+            foreach (var varScope in copy)
             {
-                // Store the variable. The initial secret values have already been
-                // registered by the Worker class.
-                _variables[variable.Name] = variable;
+                variables[varScope.Key] = new List<Variable>();
+                foreach (var variable in varScope.Value)
+                {
+                    if (!string.IsNullOrWhiteSpace(variable.Key))
+                    {
+                        variables[varScope.Key].Add(new Variable(variable.Key, variable.Value.Value, variable.Value.IsSecret));
+                    }
+                }
+            }
+
+            foreach (var varScope in variables)
+            {
+                foreach (Variable variable in varScope.Value)
+                {
+                    // Store the variable. The initial secret values have already been
+                    // registered by the Worker class.
+                    _variables[varScope.Key][variable.Name] = variable;
+                }
             }
         }
 
         // DO NOT add file path variable to here.
         // All file path variables needs to be retrive and set through ExecutionContext, so it can handle container file path translation.
-        public string Build_Number => Get(SdkConstants.Variables.Build.BuildNumber);
+        public string Build_Number => Get(SdkConstants.Variables.Build.BuildNumber, SecretScope.Final);
 
 #if OS_WINDOWS
         public bool Retain_Default_Encoding => false;
@@ -70,14 +87,14 @@ namespace GitHub.Runner.Worker
         public bool Retain_Default_Encoding => true;
 #endif
 
-        public bool? Step_Debug => GetBoolean(Constants.Variables.Actions.StepDebug);
+        public bool? Step_Debug => GetBoolean(Constants.Variables.Actions.StepDebug, SecretScope.Final);
 
-        public string System_PhaseDisplayName => Get(Constants.Variables.System.PhaseDisplayName);
+        public string System_PhaseDisplayName => Get(Constants.Variables.System.PhaseDisplayName, SecretScope.Final);
 
-        public string Get(string name)
+        public string Get(string name, SecretScope scope)
         {
             Variable variable;
-            if (_variables.TryGetValue(name, out variable))
+            if (_variables[scope].TryGetValue(name, out variable))
             {
                 _trace.Verbose($"Get '{name}': '{variable.Value}'");
                 return variable.Value;
@@ -87,10 +104,10 @@ namespace GitHub.Runner.Worker
             return null;
         }
 
-        public bool? GetBoolean(string name)
+        public bool? GetBoolean(string name, SecretScope scope)
         {
             bool val;
-            if (bool.TryParse(Get(name), out val))
+            if (bool.TryParse(Get(name, scope), out val))
             {
                 return val;
             }
@@ -100,13 +117,13 @@ namespace GitHub.Runner.Worker
 
         public T? GetEnum<T>(string name) where T : struct
         {
-            return EnumUtil.TryParse<T>(Get(name));
+            return EnumUtil.TryParse<T>(Get(name, SecretScope.Final));
         }
 
         public Guid? GetGuid(string name)
         {
             Guid val;
-            if (Guid.TryParse(Get(name), out val))
+            if (Guid.TryParse(Get(name, SecretScope.Final), out val))
             {
                 return val;
             }
@@ -117,7 +134,7 @@ namespace GitHub.Runner.Worker
         public int? GetInt(string name)
         {
             int val;
-            if (int.TryParse(Get(name), out val))
+            if (int.TryParse(Get(name, SecretScope.Final), out val))
             {
                 return val;
             }
@@ -128,7 +145,7 @@ namespace GitHub.Runner.Worker
         public long? GetLong(string name)
         {
             long val;
-            if (long.TryParse(Get(name), out val))
+            if (long.TryParse(Get(name, SecretScope.Final), out val))
             {
                 return val;
             }
@@ -136,16 +153,16 @@ namespace GitHub.Runner.Worker
             return null;
         }
 
-        public void Set(string name, string val)
+        public void Set(string name, string val, SecretScope scope)
         {
             ArgUtil.NotNullOrEmpty(name, nameof(name));
-            _variables[name] = new Variable(name, val, false);
+            _variables[scope][name] = new Variable(name, val, false);
         }
 
-        public bool TryGetValue(string name, out string val)
+        public bool TryGetValue(string name, SecretScope scope, out string val)
         {
             Variable variable;
-            if (_variables.TryGetValue(name, out variable))
+            if (_variables[scope].TryGetValue(name, out variable))
             {
                 val = variable.Value;
                 _trace.Verbose($"Get '{name}': '{val}'");
@@ -157,10 +174,11 @@ namespace GitHub.Runner.Worker
             return false;
         }
 
-        public DictionaryContextData ToSecretsContext()
+        public DictionaryContextData ToSecretsContext(SecretScope scope)
         {
             var result = new DictionaryContextData();
-            foreach (var variable in _variables.Values)
+
+            foreach (var variable in _variables[scope].Values)
             {
                 if (variable.Secret &&
                     !string.Equals(variable.Name, Constants.Variables.System.AccessToken, StringComparison.OrdinalIgnoreCase) &&

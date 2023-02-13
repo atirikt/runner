@@ -6,6 +6,7 @@ using GitHub.DistributedTask.ObjectTemplating.Tokens;
 using GitHub.DistributedTask.Pipelines;
 using GitHub.DistributedTask.Pipelines.ContextData;
 using GitHub.DistributedTask.Pipelines.ObjectTemplating;
+using GitHub.DistributedTask.WebApi;
 using GitHub.Runner.Common;
 using GitHub.Runner.Common.Util;
 using GitHub.Runner.Sdk;
@@ -174,7 +175,7 @@ namespace GitHub.Runner.Worker
             // Load the inputs.
             ExecutionContext.Debug("Loading inputs");
             Dictionary<string, string> inputs;
-            if (ExecutionContext.Global.Variables.GetBoolean(Constants.Runner.Features.UseContainerPathForTemplate) ?? false)
+            if (ExecutionContext.Global.Variables.GetBoolean(Constants.Runner.Features.UseContainerPathForTemplate, SecretScope.Final) ?? false)
             {
                 inputs = EvaluateStepInputs(stepHost);
             }

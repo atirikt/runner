@@ -992,7 +992,7 @@ namespace GitHub.Runner.Listener
                 try
                 {
                     if (!string.IsNullOrEmpty(errorMessage) &&
-                        message.Variables.TryGetValue("DistributedTask.EnableRunnerIPCDebug", out var enableRunnerIPCDebug) &&
+                        message.Variables[SecretScope.Final].TryGetValue("DistributedTask.EnableRunnerIPCDebug", out var enableRunnerIPCDebug) &&
                         StringUtil.ConvertToBoolean(enableRunnerIPCDebug.Value))
                     {
                         // the trace should be best effort and not affect any job result

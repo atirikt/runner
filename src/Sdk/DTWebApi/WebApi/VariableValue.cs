@@ -3,6 +3,11 @@ using System.Runtime.Serialization;
 
 namespace GitHub.DistributedTask.WebApi
 {
+    public enum SecretScope {
+        Org,
+        Repo,
+        Final
+    };
     [DataContract]
     public class VariableValue
     {
@@ -30,6 +35,13 @@ namespace GitHub.DistributedTask.WebApi
 
         [DataMember(EmitDefaultValue = false)]
         public Boolean IsSecret
+        {
+            get;
+            set;
+        }
+
+        [DataMember(EmitDefaultValue = false)]
+        public SecretScope Scope
         {
             get;
             set;
