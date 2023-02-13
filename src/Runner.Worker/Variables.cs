@@ -61,7 +61,7 @@ namespace GitHub.Runner.Worker
                 {
                     if (!string.IsNullOrWhiteSpace(variable.Key))
                     {
-                        variables[varScope.Key].Add(new Variable(variable.Key, variable.Value.Value, variable.Value.IsSecret));
+                        variables[varScope.Key].Add(new Variable(variable.Key, variable.Value.Value, variable.Value.IsSecret, variable.Value.Scope));
                     }
                 }
             }
@@ -156,7 +156,7 @@ namespace GitHub.Runner.Worker
         public void Set(string name, string val, SecretScope scope)
         {
             ArgUtil.NotNullOrEmpty(name, nameof(name));
-            _variables[scope][name] = new Variable(name, val, false);
+            _variables[scope][name] = new Variable(name, val, false, SecretScope.Final);
         }
 
         public bool TryGetValue(string name, SecretScope scope, out string val)
@@ -197,12 +197,15 @@ namespace GitHub.Runner.Worker
         public bool Secret { get; private set; }
         public string Value { get; private set; }
 
-        public Variable(string name, string value, bool secret)
+        public SecretScope Scope {get; private set;}
+
+        public Variable(string name, string value, bool secret, SecretScope scope)
         {
             ArgUtil.NotNullOrEmpty(name, nameof(name));
             Name = name;
             Value = value ?? string.Empty;
             Secret = secret;
+            Scope = scope;
         }
     }
 }
